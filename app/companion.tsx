@@ -1,221 +1,267 @@
-import React, { useMemo, useRef, useState } from "react";
-import { View, StyleSheet, Pressable, Vibration, Platform } from "react-native";
-import { Audio } from "expo-av";
-import * as Speech from "expo-speech";
+import React, { useEffect, useRef, useState } from "react";
+import { View, StyleSheet, Pressable, Animated, Vibration } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { Screen } from "@/src/components/Screen";
 import { UiText } from "@/src/components/UiText";
+import { CompanionHeader } from "@/src/components/CompanionHeader";
 import { useTheme } from "@/src/ui/useTheme";
-import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import Vapi from "@vapi-ai/react-native";
 
-type Phase = "idle" | "recording" | "transcribing" | "speaking";
+const ASSISTANT_ID_BY_AVATAR: Record<string, string> = {
+  femme: "108558c3-b81a-4a38-98dc-5d6b216a2c5a",
+  homme: "f822112d-ed69-4d7d-899b-003ac03c11eb",
+  dynamique: "f02351da-71f7-4dbf-bab5-fe5a6af67e6b",
+};
 
-const URGENCE_KEYWORDS = [
-  "urgence",
-  "au secours",
-  "aide",
-  "help",
-  "j'ai mal",
-  "je suis tomb",
-  "chute",
-  "malaise",
-  "je saigne",
-  "ambulance",
-];
-
-const WHISPER_API_BASE = "https://whisper-api-xfhp.onrender.com"; // <- ton URL Render
-const WHISPER_TRANSCRIBE_URL = `${WHISPER_API_BASE}/transcribe`;
+type Phase = "idle" | "listening" | "speaking" | "error";
 
 export default function CompanionScreen() {
   const t = useTheme();
+
   const [phase, setPhase] = useState<Phase>("idle");
-  const [lastText, setLastText] = useState<string>("");
-  const recordingRef = useRef<Audio.Recording | null>(null);
+  const [active, setActive] = useState(false);
+  const [avatarId, setAvatarId] = useState<string>("femme");
+  const [errorMsg, setErrorMsg] = useState<string>("");
 
-  const s = useMemo(
-    () =>
-      StyleSheet.create({
-        header: { gap: 8, marginBottom: t.spacing.lg },
-        card: {
-          backgroundColor: t.colors.surface,
-          borderRadius: t.radius.xl,
-          padding: t.spacing.lg,
-          borderWidth: 1,
-          borderColor: t.colors.border,
-          ...t.shadow.card,
-        },
-        micWrap: {
-          alignSelf: "center",
-          marginTop: t.spacing.xl,
-          width: 140,
-          height: 140,
-          borderRadius: 999,
-          backgroundColor: t.colors.surface,
-          borderWidth: 1,
-          borderColor: t.colors.border,
-          alignItems: "center",
-          justifyContent: "center",
-          ...t.shadow.card,
-        },
-        micInner: {
-          width: 110,
-          height: 110,
-          borderRadius: 999,
-          backgroundColor: phase === "recording" ? t.colors.danger : t.colors.primary,
-          alignItems: "center",
-          justifyContent: "center",
-        },
-        hint: { textAlign: "center", marginTop: t.spacing.lg },
-      }),
-    [t, phase]
-  );
+  const pulse = useRef(new Animated.Value(0)).current;
+  const vapiRef = useRef<Vapi | null>(null);
 
-  async function startRecording() {
-    try {
-      setLastText("");
-      Vibration.vibrate(30);
+  useEffect(() => {
+    const key = (process.env.EXPO_PUBLIC_VAPI_PUBLIC_KEY || "").trim();
+    console.log("🔑 VAPI KEY:", key.slice(0, 10) + "...", "length:", key.length);
 
-      const perm = await Audio.requestPermissionsAsync();
-      if (!perm.granted) {
-        setLastText("Micro non autorisé. Activez-le dans les paramètres.");
-        return;
-      }
-
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-
-      const rec = new Audio.Recording();
-      recordingRef.current = rec;
-
-      await rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-      await rec.startAsync();
-      setPhase("recording");
-    } catch (e: any) {
-      setPhase("idle");
-      setLastText("Erreur micro: " + (e?.message ?? String(e)));
+    if (!key) {
+      console.error("❌ Missing EXPO_PUBLIC_VAPI_PUBLIC_KEY");
+      setPhase("error");
+      setErrorMsg("Clé API manquante");
+      return;
     }
-  }
 
-  async function stopRecordingAndProcess() {
-    const rec = recordingRef.current;
-    if (!rec) return;
+    const vapi = new Vapi(key);
+    vapiRef.current = vapi;
 
-    try {
-      setPhase("transcribing");
-      await rec.stopAndUnloadAsync();
-      const uri = rec.getURI();
-      recordingRef.current = null;
-
-      if (!uri) {
-        setPhase("idle");
-        setLastText("Enregistrement introuvable.");
-        return;
-      }
-
-      const text = await transcribeWithServer(uri);
-      setLastText(text || "(Je n’ai pas compris.)");
-
-      if (isUrgence(text)) {
-        Speech.stop();
-        setPhase("idle");
-        router.push("/emergency-confirm");
-        return;
-      }
-
-      const reply = generateReply(text);
-      setPhase("speaking");
-      Speech.speak(reply, {
-        language: "fr-FR",
-        rate: Platform.OS === "android" ? 0.95 : 1.0,
-      });
-
-      setTimeout(() => setPhase("idle"), 800);
-    } catch (e: any) {
-      setPhase("idle");
-      setLastText("Erreur transcription: " + (e?.message ?? String(e)));
-    }
-  }
-
-  function isUrgence(text: string) {
-    const low = (text || "").toLowerCase();
-    return URGENCE_KEYWORDS.some((k) => low.includes(k));
-  }
-
-  function generateReply(text: string) {
-    const low = (text || "").toLowerCase();
-    if (!text) return "Je n’ai pas bien entendu. Pouvez-vous répéter ?";
-    if (low.includes("bonjour")) return "Bonjour ! Je suis là avec vous. Que souhaitez-vous faire ?";
-    if (low.includes("agenda") || low.includes("rappel")) return "D’accord. Allons voir votre agenda.";
-    if (low.includes("jeu") || low.includes("memory") || low.includes("puzzle"))
-      return "Très bien, allons dans les jeux.";
-    return "D’accord. Je vous écoute. Dites-moi ce dont vous avez besoin.";
-  }
-
-  async function transcribeWithServer(audioUri: string): Promise<string> {
-    const form = new FormData();
-
-    // IMPORTANT: plus compatible que audio/m4a selon devices/serveurs
-    form.append("audio", {
-      uri: audioUri,
-      name: "audio.mp4",
-      type: "audio/mp4",
-    } as any);
-
-    const res = await fetch(WHISPER_TRANSCRIBE_URL, {
-      method: "POST",
-      body: form,
+    // 📞 CALL START
+    vapi.on("call-start", () => {
+      console.log("✅ Call started");
+      setPhase("listening");
+      setActive(true);
     });
 
-    const raw = await res.text(); // utile pour debug (même si JSON)
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}: ${raw}`);
+    // 🎤 SPEECH START
+    vapi.on("speech-start", () => {
+      console.log("🎤 Speech started");
+      setPhase("listening");
+    });
+
+    // 🛑 SPEECH END
+    vapi.on("speech-end", () => {
+      console.log("🛑 Speech ended");
+    });
+
+    // 💬 MESSAGES (remplace transcript)
+    vapi.on("message", (msg: any) => {
+      console.log("💬 Message reçu:", msg);
+      
+      // Logs détaillés pour debug
+      if (msg.type === "transcript") {
+        console.log("📝 Transcript:", {
+          role: msg.role,
+          type: msg.transcriptType,
+          text: msg.transcript
+        });
+      }
+      
+      // Détecter assistant qui parle
+      if (msg.type === "transcript" && msg.role === "assistant") {
+        console.log("🗣️ Assistant is speaking");
+        setPhase("speaking");
+      }
+      
+      // Détecter user qui parle
+      if (msg.type === "transcript" && msg.role === "user") {
+        console.log("👤 User is speaking");
+        setPhase("listening");
+      }
+    });
+
+    // 🔚 CALL END
+    vapi.on("call-end", () => {
+      console.log("🔚 Call ended");
+      setPhase("idle");
+      setActive(false);
+      stopPulse();
+    });
+
+    // ❌ ERROR
+    vapi.on("error", (e: any) => {
+      console.log("⚠️ Vapi error event:", JSON.stringify(e, null, 2));
+      
+      // Fin normale de session
+      if (e?.error?.msg === "Meeting has ended" || e?.error?.type === "ejected") {
+        console.log("ℹ️ Session ended normally");
+        setPhase("idle");
+        setActive(false);
+        stopPulse();
+        return;
+      }
+
+      // Vraie erreur
+      console.error("❌ Vapi error:", e);
+      setPhase("error");
+      setErrorMsg(e?.error?.msg || e?.message || "Erreur inconnue");
+      setActive(false);
+      stopPulse();
+    });
+
+    // Charger avatar
+    AsyncStorage.getItem("companion.avatarId").then((v) => {
+      if (v) {
+        console.log("👤 Avatar:", v);
+        setAvatarId(v.toLowerCase());
+      }
+    });
+
+    return () => {
+      console.log("🧹 Cleanup");
+      try {
+        vapi.stop();
+      } catch {}
+    };
+  }, []);
+
+  const startPulse = () => {
+    pulse.setValue(0);
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 600, useNativeDriver: true }),
+      ])
+    ).start();
+  };
+
+  const stopPulse = () => {
+    pulse.stopAnimation();
+    pulse.setValue(0);
+  };
+
+  const onPress = async () => {
+    const vapi = vapiRef.current;
+    if (!vapi) {
+      console.error("❌ Vapi not initialized");
+      return;
     }
 
-    const data = JSON.parse(raw);
-    return data.text ?? "";
-  }
+    // Stop si déjà actif
+    if (active) {
+      console.log("🛑 Stopping...");
+      try {
+        vapi.stop();
+      } catch (e) {
+        console.log("Stop error (ignoré):", e);
+      }
+      setActive(false);
+      setPhase("idle");
+      stopPulse();
+      return;
+    }
 
-  const hint =
-    phase === "recording"
-      ? "Parlez… puis relâchez."
-      : phase === "transcribing"
-      ? "Transcription en cours…"
-      : "Maintenez le micro pour parler.";
+    const assistantId = ASSISTANT_ID_BY_AVATAR[avatarId] || ASSISTANT_ID_BY_AVATAR.femme;
+    console.log("🚀 Starting with assistantId:", assistantId);
+
+    try {
+      // Reset
+      try {
+        vapi.stop();
+      } catch {}
+
+      // UI
+      setActive(true);
+      setPhase("listening");
+      setErrorMsg("");
+      Vibration.vibrate(20);
+      startPulse();
+
+      // ✅ Start avec STRING directement
+      await vapi.start(assistantId);
+      
+      console.log("✅ vapi.start() called successfully");
+
+    } catch (e: any) {
+      console.error("❌ Start failed:", e);
+      setActive(false);
+      setPhase("error");
+      setErrorMsg(e?.message || "Erreur démarrage");
+      stopPulse();
+    }
+  };
+
+  const label =
+    phase === "listening"
+      ? "Je vous écoute…"
+      : phase === "speaking"
+      ? "Je vous réponds…"
+      : phase === "error"
+      ? `Erreur: ${errorMsg}`
+      : "Touchez pour parler";
+
+  const dotScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.35] });
+  const dotOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] });
+
+  const s = StyleSheet.create({
+    header: { gap: 8, marginBottom: t.spacing.lg },
+    row: { flexDirection: "row", alignItems: "center", gap: 10 },
+    dot: {
+      width: 12,
+      height: 12,
+      borderRadius: 999,
+      backgroundColor: t.colors.primary,
+    },
+    micWrap: {
+      alignSelf: "center",
+      marginTop: t.spacing.xl,
+      width: 140,
+      height: 140,
+      borderRadius: 999,
+      backgroundColor: t.colors.surface,
+      borderWidth: 1,
+      borderColor: t.colors.border,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    micInner: {
+      width: 110,
+      height: 110,
+      borderRadius: 999,
+      backgroundColor: phase === "listening" ? t.colors.danger : t.colors.primary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+  });
 
   return (
     <Screen>
       <View style={s.header}>
-        <UiText variant="h1" style={{ fontWeight: "900" }}>
-          Compagnon
-        </UiText>
-        <UiText muted>Maintenez le micro, parlez, relâchez.</UiText>
+        <CompanionHeader title="Bonjour" subtitle="Touchez pour parler" />
+        <View style={s.row}>
+          <Animated.View
+            style={[
+              s.dot,
+              phase === "listening"
+                ? { transform: [{ scale: dotScale }], opacity: dotOpacity }
+                : { opacity: 0.6 },
+            ]}
+          />
+          <UiText muted>{label}</UiText>
+        </View>
       </View>
 
-      <View style={s.card}>
-        <UiText variant="title" style={{ fontWeight: "900" }}>
-          Dernière phrase entendue
-        </UiText>
-        <UiText muted style={{ marginTop: 8 }}>
-          {lastText || "—"}
-        </UiText>
-      </View>
-
-      <Pressable
-        onPressIn={startRecording}
-        onPressOut={stopRecordingAndProcess}
-        style={s.micWrap}
-        accessibilityRole="button"
-      >
+      <Pressable onPress={onPress} style={s.micWrap}>
         <View style={s.micInner}>
-          <Ionicons name="mic" size={46} color="#fff" />
+          <Ionicons name={active ? "mic" : "mic-outline"} size={46} color="#fff" />
         </View>
       </Pressable>
-
-      <UiText muted style={s.hint}>
-        {hint}
-      </UiText>
     </Screen>
   );
 }
