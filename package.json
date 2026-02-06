@@ -9,13 +9,9 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "@config-plugins/react-native-webrtc": "^13.0.0",
-    "@daily-co/config-plugin-rn-daily-js": "^0.0.11",
-    "@daily-co/react-native-webrtc": "118.0.3-daily.4",
     "@dev-amirzubair/react-native-voice": "^1.0.4",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "^1.24.0",
-    "@vapi-ai/react-native": "^0.3.0",
     "expo": "^54.0.32",
     "expo-av": "~16.0.8",
     "expo-build-properties": "~1.0.10",
