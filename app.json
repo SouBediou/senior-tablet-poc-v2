@@ -46,7 +46,6 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "@daily-co/config-plugin-rn-daily-js",
       "@config-plugins/react-native-webrtc",
       [
         "expo-build-properties",
