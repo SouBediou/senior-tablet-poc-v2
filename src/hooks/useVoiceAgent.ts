@@ -123,7 +123,7 @@ export function useVoiceAgent(config: VoiceAgentConfig) {
       formData.append("sessionId", sessionId);
 
       console.log("📤 Sending to backend...");
-      const res = await fetch(`${BACKEND_URL}/voice`, {
+      const res = await fetch(`${BACKEND_URL}/voice-chat`, {
         method: "POST",
         body: formData,
       });
