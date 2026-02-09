@@ -46,7 +46,6 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "@config-plugins/react-native-webrtc",
       [
         "expo-build-properties",
         {
