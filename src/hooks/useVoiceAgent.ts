@@ -1,8 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Audio } from "expo-av";
 import * as Speech from "expo-speech";
+import { BACKEND_URL } from "../config";
 
-const BACKEND_URL = process.env.EXPO_PUBLIC_VOICE_BACKEND_URL || "https://your-backend.onrender.com";
+// Log au chargement du module
+console.log("🔗 [useVoiceAgent] Module chargé, BACKEND_URL =", BACKEND_URL);
 
 export type VoicePhase = "idle" | "listening" | "processing" | "speaking" | "error";
 
@@ -122,14 +124,24 @@ export function useVoiceAgent(config: VoiceAgentConfig) {
       formData.append("avatarId", avatarId);
       formData.append("sessionId", sessionId);
 
+      const fullUrl = `${BACKEND_URL}/voice-chat`;
+      console.log("📤 [DEBUG] BACKEND_URL =", BACKEND_URL);
+      console.log("📤 [DEBUG] Full URL =", fullUrl);
+      console.log("📤 [DEBUG] URL length =", fullUrl.length);
+      console.log("📤 [DEBUG] URL charCodes =", [...fullUrl].slice(0, 50).map(c => c.charCodeAt(0)));
+
       console.log("📤 Sending to backend...");
-      const res = await fetch(`${BACKEND_URL}/voice-chat`, {
+      const res = await fetch(fullUrl, {
         method: "POST",
         body: formData,
       });
 
+      console.log("📥 [DEBUG] Response status =", res.status);
+      console.log("📥 [DEBUG] Response URL =", res.url);
+
       if (!res.ok) {
         const text = await res.text();
+        console.error("❌ [DEBUG] Error response body =", text);
         throw new Error(`Erreur serveur: ${res.status} ${text}`);
       }
 

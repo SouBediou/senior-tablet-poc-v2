@@ -1,6 +1,10 @@
 // API pour le backend vocal custom (Whisper + Claude + OpenAI TTS)
+import { BACKEND_URL } from "../config";
 
-const BASE_URL = process.env.EXPO_PUBLIC_VOICE_BACKEND_URL || "https://your-backend.onrender.com";
+const BASE_URL = BACKEND_URL;
+
+// Log au chargement
+console.log("🔗 [chat.ts] BASE_URL =", BASE_URL);
 
 // ============================================
 // TYPES
