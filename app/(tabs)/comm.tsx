@@ -1,3 +1,4 @@
+import { useFocusEffect } from "@react-navigation/native";
 import React, { useMemo, useState } from "react";
 import { View, Pressable, ScrollView } from "react-native";
 import { router } from "expo-router";
@@ -7,6 +8,7 @@ import { useContacts } from "@/src/hooks/useContacts";
 import type { ContactRole } from "@/src/storage/contacts";
 import { UiText } from "@/src/components/UiText";
 
+
 const ROLE_LABEL: Record<ContactRole, string> = {
   family: "Famille / proche",
   care: "Soignant",
@@ -15,8 +17,14 @@ const ROLE_LABEL: Record<ContactRole, string> = {
 
 export default function CommScreen() {
   const t = useTheme();
-  const { contacts, loading } = useContacts();
+  const { contacts, loading, refresh } = useContacts();
   const [roleFilter, setRoleFilter] = useState<ContactRole | "all">("all");
+
+  useFocusEffect(
+    React.useCallback(() => {
+      refresh();
+    }, [refresh])
+  );
 
   const filtered = useMemo(() => {
     if (roleFilter === "all") return contacts;
