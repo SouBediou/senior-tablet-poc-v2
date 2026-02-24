@@ -7,13 +7,14 @@ import { Screen } from "@/src/components/Screen";
 import { useTheme } from "@/src/ui/useTheme";
 import { ActionCard } from "@/src/components/ActionCard";
 import { UiText } from "@/src/components/UiText";
+import { useProfile } from '@/src/hooks/useProfile';
 import { DID_AGENT_ID, DID_CLIENT_KEY } from "@/src/config";
 
 export default function HomeScreen() {
   const t = useTheme();
   const { height } = useWindowDimensions();
   const avatarHeight = height * 0.5;
-
+  const { profile, loaded } = useProfile();
   const s = StyleSheet.create({
     avatarContainer: {
       height: avatarHeight,
@@ -37,7 +38,15 @@ export default function HomeScreen() {
     },
   });
 
-  const html = `
+  const profileContext = loaded && profile.prenom ? `
+Tu parles à ${profile.prenom}, ${profile.age} ans${profile.ville ? `, qui habite à ${profile.ville}` : ''}.
+${profile.enfants ? `Ses enfants s'appellent : ${profile.enfants}.` : ''}
+${profile.profession ? `Il/Elle était ${profile.profession}.` : ''}
+${profile.interets ? `Ses centres d'intérêt : ${profile.interets}.` : ''}
+Appelle-le/la par son prénom. Sois chaleureuse et personnelle.
+` : '';
+
+const html = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -47,14 +56,6 @@ export default function HomeScreen() {
     body { background: #000; width: 100vw; height: 100vh; overflow: hidden; }
     #agent-video { width: 100%; height: 100%; object-fit: cover; }
     #status { position: absolute; top: 10px; left: 10px; color: white; font-size: 12px; font-family: sans-serif; }
-  </style>
-</head>
-<body>
-  <video id="agent-video" autoplay playsinline></video>
-  <div id="status">Connexion...</div>
-  <button id="mic-btn">Parler à Jeanne</button>
-
-  <style>
     #mic-btn {
       position: absolute;
       bottom: 30px;
@@ -68,12 +69,22 @@ export default function HomeScreen() {
       font-weight: bold;
       cursor: pointer;
       box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      white-space: nowrap;
     }
     #mic-btn.listening {
       background: #ff4444;
       color: white;
     }
+    #mic-btn.speaking {
+      background: #4CAF50;
+      color: white;
+    }
   </style>
+</head>
+<body>
+  <video id="agent-video" autoplay playsinline></video>
+  <div id="status">Connexion...</div>
+  <button id="mic-btn">Parler à Jeanne</button>
 
   <script type="module">
     import * as did from 'https://cdn.jsdelivr.net/npm/@d-id/client-sdk@1.1.9/+esm';
@@ -84,13 +95,25 @@ export default function HomeScreen() {
     const videoElement = document.getElementById('agent-video');
     const micBtn = document.getElementById('mic-btn');
     let agent;
+    let isSpeaking = false;
 
     const callbacks = {
       onSrcObjectReady(value) {
         videoElement.srcObject = value;
       },
+      onVideoStateChange(state) {
+        if (state === 'talking') {
+          isSpeaking = true;
+          micBtn.classList.add('speaking');
+          micBtn.textContent = '⏹ Arrêter';
+        } else {
+          isSpeaking = false;
+          micBtn.classList.remove('speaking');
+          micBtn.textContent = 'Parler à Jeanne';
+        }
+      },
       onConnectionStateChange(state) {
-        status.textContent = state;
+        status.textContent = state === 'connected' ? '' : state;
       },
       onNewMessage(messages, type) {
         console.log('Message:', messages);
@@ -109,7 +132,7 @@ export default function HomeScreen() {
       status.textContent = 'Connexion...';
       await agent.connect();
       status.textContent = '';
-      await agent.chat("Bonjour !");
+      await agent.chat("Contexte confidentiel sur la personne avec qui tu parles (ne révèle pas ces infos directement) : ${profileContext}. Quand on te parlera, utilise ces informations naturellement dans la conversation.");
     } catch(e) {
       status.textContent = 'Erreur: ' + e.message;
     }
@@ -119,7 +142,14 @@ export default function HomeScreen() {
     recognition.lang = 'fr-FR';
     recognition.interimResults = false;
 
-    micBtn.addEventListener('click', () => {
+    micBtn.addEventListener('click', async () => {
+      if (isSpeaking) {
+        await agent.speak({ type: 'text', input: '' });
+        isSpeaking = false;
+        micBtn.classList.remove('speaking');
+        micBtn.textContent = 'Parler à Jeanne';
+        return;
+      }
       micBtn.classList.add('listening');
       micBtn.textContent = 'Écoute...';
       recognition.start();
@@ -133,20 +163,20 @@ export default function HomeScreen() {
       await agent.chat(transcript);
     };
 
-    recognition.onerror = (event) => {
-  micBtn.classList.remove('listening');
-  micBtn.textContent = 'Parler à Jeanne';
-  status.textContent = '';
-};
+    recognition.onerror = () => {
+      micBtn.classList.remove('listening');
+      micBtn.textContent = 'Parler à Jeanne';
+      status.textContent = '';
+    };
 
-recognition.onend = () => {
-  micBtn.classList.remove('listening');
-  micBtn.textContent = 'Parler à Jeanne';
-};
+    recognition.onend = () => {
+      micBtn.classList.remove('listening');
+      if (!isSpeaking) micBtn.textContent = 'Parler à Jeanne';
+    };
   </script>
 </body>
 </html>
-  `;
+`;
 
   return (
     <Screen>
@@ -177,7 +207,7 @@ recognition.onend = () => {
               title="Contacts"
               subtitle="Famille & soignants"
               icon="people-outline"
-              onPress={() => router.push("/contacts/quick-call")}
+              onPress={() => router.push("/(tabs)/comm")}
             />
           </View>
           <View style={s.col}>
