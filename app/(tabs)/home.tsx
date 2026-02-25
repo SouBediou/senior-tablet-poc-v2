@@ -95,26 +95,13 @@ const html = `
     const videoElement = document.getElementById('agent-video');
     const micBtn = document.getElementById('mic-btn');
     let agent;
-    let isSpeaking = false;
 
     const callbacks = {
       onSrcObjectReady(value) {
         videoElement.srcObject = value;
       },
-      onVideoStateChange(state) {
-      console.log('video state:', state);
-        if (state === 'talking') {
-          isSpeaking = true;
-          micBtn.classList.add('speaking');
-          micBtn.textContent = '⏹ Arrêter';
-        } else {
-          isSpeaking = false;
-          micBtn.classList.remove('speaking');
-          micBtn.textContent = 'Parler à Jeanne';
-        }
-      },
       onConnectionStateChange(state) {
-        status.textContent = state === 'connected' ? '' : state;
+        status.textContent = state;
       },
       onNewMessage(messages, type) {
         console.log('Message:', messages);
@@ -125,15 +112,13 @@ const html = `
     };
 
     try {
-      status.textContent = 'Création agent...';
       agent = await did.createAgentManager(agentId, {
         auth: { type: 'key', clientKey },
         callbacks
       });
-      status.textContent = 'Connexion...';
       await agent.connect();
       status.textContent = '';
-      await agent.chat("Contexte confidentiel sur la personne avec qui tu parles (ne révèle pas ces infos directement) : ${profileContext}. Quand on te parlera, utilise ces informations naturellement dans la conversation.");
+      await agent.chat("Bonjour !");
     } catch(e) {
       status.textContent = 'Erreur: ' + e.message;
     }
@@ -143,14 +128,7 @@ const html = `
     recognition.lang = 'fr-FR';
     recognition.interimResults = false;
 
-    micBtn.addEventListener('click', async () => {
-      if (isSpeaking) {
-        await agent.speak({ type: 'text', input: '' });
-        isSpeaking = false;
-        micBtn.classList.remove('speaking');
-        micBtn.textContent = 'Parler à Jeanne';
-        return;
-      }
+    micBtn.addEventListener('click', () => {
       micBtn.classList.add('listening');
       micBtn.textContent = 'Écoute...';
       recognition.start();
@@ -172,7 +150,7 @@ const html = `
 
     recognition.onend = () => {
       micBtn.classList.remove('listening');
-      if (!isSpeaking) micBtn.textContent = 'Parler à Jeanne';
+      micBtn.textContent = 'Parler à Jeanne';
     };
   </script>
 </body>
