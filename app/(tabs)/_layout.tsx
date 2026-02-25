@@ -31,8 +31,8 @@ export default function TabsLayout() {
           fontSize: 18,
           fontWeight: "900",
         },
-        tabBarActiveTintColor: t.colors.onInk,
-        tabBarInactiveTintColor: "rgba(255,255,255,0.78)",
+        tabBarActiveTintColor: "#411C68",
+        tabBarInactiveTintColor: "rgba(65,28,104,0.6)",
 
         // ✅ pas d’icônes
         tabBarIconStyle: { display: "none" },

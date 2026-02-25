@@ -7,6 +7,7 @@ import { UiText } from "../../src/components/UiText";
 import { useAgenda } from "../../src/hooks/useAgenda";
 import type { AgendaItem } from "../../src/storage/agenda";
 import { markTaken, snooze } from "../../src/storage/agenda";
+import { ScreenHeader } from '@/src/components/ScreenHeader';
 
 /* Helpers affichage */
 function formatTime(iso: string) {
@@ -144,27 +145,8 @@ export default function AgendaScreen() {
 
   return (
     <View style={{ flex: 1, padding: 16, gap: 12 }}>
-      {/* Titre bubble jaune (même charte que Contacts) */}
-      <View style={{ alignItems: "center", gap: t.spacing.sm }}>
-        <View
-          style={{
-            marginTop: t.spacing.md,
-            backgroundColor: "#f5ce5d",
-            borderRadius: t.radius.lg,
-            paddingVertical: t.spacing.md,
-            paddingHorizontal: t.spacing.lg,
-            maxWidth: "92%",
-          }}
-        >
-          <UiText style={{ fontWeight: "900", fontSize: 26, textAlign: "center" }}>
-            Agenda
-          </UiText>
-        </View>
-
-        <UiText muted style={{ textAlign: "center" }}>
-          Aujourd’hui, demain et à venir
-        </UiText>
-      </View>
+      {/* Titre harmonisé) */}
+      <ScreenHeader title="Agenda" subtitle="Aujourd'hui, demain et à venir" />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 24, gap: 16 }}>
         {loading ? (

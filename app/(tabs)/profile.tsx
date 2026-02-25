@@ -4,6 +4,7 @@ import { Screen } from '@/src/components/Screen';
 import { UiText } from '@/src/components/UiText';
 import { useTheme } from '@/src/ui/useTheme';
 import { useProfile, SeniorProfile } from '@/src/hooks/useProfile';
+import { ScreenHeader } from '@/src/components/ScreenHeader';
 
 export default function ProfileScreen() {
   const t = useTheme();
@@ -66,9 +67,7 @@ export default function ProfileScreen() {
   return (
     <Screen>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <UiText variant="title" style={s.title}>
-          👤 Profil du senior
-        </UiText>
+      <ScreenHeader title="Profil" subtitle="Informations renseignées par l'aidant" />
 
         {fields.map(({ key, label, placeholder }) => (
           <View key={key} style={s.field}>

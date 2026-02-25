@@ -4,6 +4,7 @@ import { Screen } from "@/src/components/Screen";
 import { UiText } from "@/src/components/UiText";
 import { useTheme } from "@/src/ui/useTheme";
 import { router } from "expo-router";
+import { ScreenHeader } from '@/src/components/ScreenHeader';
 
 function BigEmergencyButton({ onPress }: { onPress: () => void }) {
   const t = useTheme();
@@ -80,14 +81,7 @@ export default function EmergencyScreen() {
 
   return (
     <Screen>
-      <View style={s.header}>
-        <UiText variant="h1" style={{ fontWeight: "900" }}>
-          Urgence
-        </UiText>
-        <UiText muted>
-          En cas de malaise ou de chute, appuyez sur le bouton.
-        </UiText>
-      </View>
+      <ScreenHeader title="Urgence" subtitle="En cas de malaise ou de chute, appuyez sur le bouton" />
 
       <View style={{ gap: t.spacing.lg }}>
         <BigEmergencyButton onPress={() => router.push("/emergency-confirm")} />

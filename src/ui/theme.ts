@@ -43,7 +43,7 @@ export const lightTheme: Theme = {
     danger: "#E5484D",
     success: "#2BAA6B",
 
-    ink: "#411C68",
+    ink: "#a7aac9",
     onInk: "#FFFFFF",
   },
 
@@ -79,7 +79,7 @@ export const darkTheme: Theme = {
     danger: "#FF5A5F",
     success: "#35C27B",
 
-    ink: "#411C68",
+    ink: "#a7aac9",
     onInk: "#FFFFFF",
   },
 };

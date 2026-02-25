@@ -2,7 +2,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import React, { useMemo, useState } from "react";
 import { View, Pressable, ScrollView } from "react-native";
 import { router } from "expo-router";
-
+import { ScreenHeader } from '@/src/components/ScreenHeader';
 import { useTheme } from "@/src/ui/useTheme";
 import { useContacts } from "@/src/hooks/useContacts";
 import type { ContactRole } from "@/src/storage/contacts";
@@ -33,23 +33,7 @@ export default function CommScreen() {
 
   return (
     <View style={{ flex: 1, padding: 16, gap: 12 }}>
-      <View style={{ alignItems: "center", gap: t.spacing.sm }}>
-        <View style={{
-          marginTop: t.spacing.md,
-          backgroundColor: "#f5ce5d",
-          borderRadius: t.radius.lg,
-          paddingVertical: t.spacing.md,
-          paddingHorizontal: t.spacing.lg,
-          maxWidth: "92%",
-        }}>
-          <UiText style={{ fontWeight: "900", fontSize: 26, textAlign: "center" }}>
-            Contacts
-          </UiText>
-        </View>
-        <UiText muted style={{ textAlign: "center" }}>
-          Ajouter un proche ou un soignant
-        </UiText>
-      </View>
+      <ScreenHeader title="Contacts" subtitle="Famille & soignants" />
 
       <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
         {(["all", "family", "care", "other"] as const).map((k) => {

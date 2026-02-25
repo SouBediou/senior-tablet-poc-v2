@@ -102,6 +102,7 @@ const html = `
         videoElement.srcObject = value;
       },
       onVideoStateChange(state) {
+      console.log('video state:', state);
         if (state === 'talking') {
           isSpeaking = true;
           micBtn.classList.add('speaking');
@@ -203,40 +204,25 @@ const html = `
 
         <View style={s.gridRow}>
           <View style={s.col}>
-            <ActionCard
-              title="Contacts"
-              subtitle="Famille & soignants"
-              icon="people-outline"
-              onPress={() => router.push("/(tabs)/comm")}
-            />
+                  <ActionCard
+          title="Contacts"
+          subtitle="Famille & soignants"
+          icon="people-outline"
+          color="#eaeaf7"
+          onPress={() => router.push("/(tabs)/comm")}
+        />
           </View>
           <View style={s.col}>
-            <ActionCard
-              title="Jeux"
-              subtitle="Memory, puzzle, quiz"
-              icon="game-controller-outline"
-              onPress={() => router.push("/(tabs)/games")}
-            />
+          <ActionCard title="Jeux" subtitle="Memory, puzzle, quiz" icon="game-controller-outline" color="#a7aac9" onPress={() => router.push("/(tabs)/games")} />
           </View>
         </View>
 
         <View style={s.gridRow}>
           <View style={s.col}>
-            <ActionCard
-              title="Agenda"
-              subtitle="Rappels & visites"
-              icon="calendar-outline"
-              onPress={() => router.push("/(tabs)/agenda")}
-            />
+          <ActionCard title="Agenda" subtitle="Rappels & visites" icon="calendar-outline" color="#a7aac9" onPress={() => router.push("/(tabs)/agenda")} />
           </View>
           <View style={s.col}>
-            <ActionCard
-              title="Urgence"
-              subtitle="Télé-assistance"
-              icon="alert-circle-outline"
-              tone="danger"
-              onPress={() => router.push("/(tabs)/emergency")}
-            />
+          <ActionCard title="Urgence" subtitle="Télé-assistance" icon="alert-circle-outline" color="#eaeaf7" onPress={() => router.push("/(tabs)/emergency")} />
           </View>
         </View>
       </View>
