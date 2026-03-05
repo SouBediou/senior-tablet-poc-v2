@@ -4,6 +4,7 @@
     "slug": "senior-tablet-poc",
     "version": "1.0.0",
     "orientation": "portrait",
+    "scheme": "seniortablet",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,

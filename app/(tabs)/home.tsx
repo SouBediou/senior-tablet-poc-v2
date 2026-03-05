@@ -1,209 +1,182 @@
 import React from "react";
-import { View, StyleSheet, useWindowDimensions } from "react-native";
+import {
+  View,
+  StyleSheet,
+  useWindowDimensions,
+  ScrollView,
+  TouchableOpacity,
+} from "react-native";
 import { router } from "expo-router";
-import { WebView } from "react-native-webview";
 
 import { Screen } from "@/src/components/Screen";
-import { useTheme } from "@/src/ui/useTheme";
-import { ActionCard } from "@/src/components/ActionCard";
 import { UiText } from "@/src/components/UiText";
-import { useProfile } from '@/src/hooks/useProfile';
-import { DID_AGENT_ID, DID_CLIENT_KEY } from "@/src/config";
+import { useProfile } from "@/src/hooks/useProfile";
+import LiveAvatarEmbed from "@/src/components/LiveAvatarEmbed";
+
+const C = {
+  black:  "#111111",
+  yellow: "#ffce36",
+  blue:   "#3481f8",
+  pink:   "#fdb6e7",
+  white:  "#ffffff",
+  muted:  "#888",
+};
+
+const DAYS = [
+  { label: "Lun", subtitle: "Recette" },
+  { label: "Mar", subtitle: "Exercice" },
+  { label: "Mer", subtitle: "Sortie" },
+  { label: "Jeu", subtitle: "Vidéo" },
+  { label: "Ven", subtitle: "Événement" },
+  { label: "Sam", subtitle: "Détente" },
+  { label: "Dim", subtitle: "Famille" },
+];
+const TODAY_INDEX = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
 
 export default function HomeScreen() {
-  const t = useTheme();
   const { height } = useWindowDimensions();
-  const avatarHeight = height * 0.5;
   const { profile, loaded } = useProfile();
-  const s = StyleSheet.create({
-    avatarContainer: {
-      height: avatarHeight,
-      borderRadius: t.radius.xl,
-      overflow: "hidden",
-      backgroundColor: "#000",
-    },
-    webview: {
-      flex: 1,
-    },
-    section: {
-      marginTop: t.spacing.lg,
-      gap: t.spacing.md,
-    },
-    gridRow: {
-      flexDirection: "row",
-      gap: t.spacing.md,
-    },
-    col: {
-      flex: 1,
-    },
-  });
-
-  const profileContext = loaded && profile.prenom ? `
-Tu parles à ${profile.prenom}, ${profile.age} ans${profile.ville ? `, qui habite à ${profile.ville}` : ''}.
-${profile.enfants ? `Ses enfants s'appellent : ${profile.enfants}.` : ''}
-${profile.profession ? `Il/Elle était ${profile.profession}.` : ''}
-${profile.interets ? `Ses centres d'intérêt : ${profile.interets}.` : ''}
-Appelle-le/la par son prénom. Sois chaleureuse et personnelle.
-` : '';
-
-const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #000; width: 100vw; height: 100vh; overflow: hidden; }
-    #agent-video { width: 100%; height: 100%; object-fit: cover; }
-    #status { position: absolute; top: 10px; left: 10px; color: white; font-size: 12px; font-family: sans-serif; }
-    #mic-btn {
-      position: absolute;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #fff;
-      border: none;
-      border-radius: 50px;
-      padding: 16px 40px;
-      font-size: 22px;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-      white-space: nowrap;
-    }
-    #mic-btn.listening {
-      background: #ff4444;
-      color: white;
-    }
-    #mic-btn.speaking {
-      background: #4CAF50;
-      color: white;
-    }
-  </style>
-</head>
-<body>
-  <video id="agent-video" autoplay playsinline></video>
-  <div id="status">Connexion...</div>
-  <button id="mic-btn">Parler à Jeanne</button>
-
-  <script type="module">
-    import * as did from 'https://cdn.jsdelivr.net/npm/@d-id/client-sdk@1.1.9/+esm';
-
-    const agentId = "${DID_AGENT_ID}";
-    const clientKey = "${DID_CLIENT_KEY}";
-    const status = document.getElementById('status');
-    const videoElement = document.getElementById('agent-video');
-    const micBtn = document.getElementById('mic-btn');
-    let agent;
-
-    const callbacks = {
-      onSrcObjectReady(value) {
-        videoElement.srcObject = value;
-      },
-      onConnectionStateChange(state) {
-        status.textContent = state;
-      },
-      onNewMessage(messages, type) {
-        console.log('Message:', messages);
-      },
-      onError(error) {
-        status.textContent = 'Erreur: ' + error.message;
-      }
-    };
-
-    try {
-      agent = await did.createAgentManager(agentId, {
-        auth: { type: 'key', clientKey },
-        callbacks
-      });
-      await agent.connect();
-      status.textContent = '';
-      await agent.chat("Bonjour !");
-    } catch(e) {
-      status.textContent = 'Erreur: ' + e.message;
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'fr-FR';
-    recognition.interimResults = false;
-
-    micBtn.addEventListener('click', () => {
-      micBtn.classList.add('listening');
-      micBtn.textContent = 'Écoute...';
-      recognition.start();
-    });
-
-    recognition.onresult = async (event) => {
-      const transcript = event.results[0][0].transcript;
-      micBtn.classList.remove('listening');
-      micBtn.textContent = 'Parler à Jeanne';
-      status.textContent = transcript;
-      await agent.chat(transcript);
-    };
-
-    recognition.onerror = () => {
-      micBtn.classList.remove('listening');
-      micBtn.textContent = 'Parler à Jeanne';
-      status.textContent = '';
-    };
-
-    recognition.onend = () => {
-      micBtn.classList.remove('listening');
-      micBtn.textContent = 'Parler à Jeanne';
-    };
-  </script>
-</body>
-</html>
-`;
+  const avatarHeight = height * 0.5;
 
   return (
     <Screen>
-      {/* Avatar D-ID 50% */}
-      <View style={s.avatarContainer}>
-        <WebView
-          style={s.webview}
-          source={{ html, baseUrl: 'https://studio.d-id.com' }}
-          mediaPlaybackRequiresUserAction={false}
-          allowsInlineMediaPlayback={true}
-          mediaCapturePermissionGrantType="grant"
-          onPermissionRequest={(request: any) => request.grant(request.resources)}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          originWhitelist={["*"]}
-        />
-      </View>
+      <ScrollView showsVerticalScrollIndicator={false}>
 
-      {/* Accès rapides */}
-      <View style={s.section}>
-        <UiText variant="small" style={{ fontWeight: "900", color: t.colors.muted }}>
-          Accès rapide
-        </UiText>
+        {/* AVATAR — taille originale 50% */}
+        <View style={[s.avatarContainer, { height: avatarHeight }]}>
+          <LiveAvatarEmbed
+            seniorName={loaded && profile?.prenom ? profile.prenom : undefined}
+          />
+        </View>
 
-        <View style={s.gridRow}>
-          <View style={s.col}>
-                  <ActionCard
-          title="Contacts"
-          subtitle="Famille & soignants"
-          icon="people-outline"
-          color="#eaeaf7"
-          onPress={() => router.push("/(tabs)/comm")}
-        />
+        {/* MÉTÉO + ACTUALITÉS */}
+        <View style={[s.row, { marginBottom: 10 }]}>
+          <View style={[s.infoCard, { backgroundColor: C.blue, flex: 1 }]}>
+            <UiText style={[s.infoLabel, { color: "rgba(255,255,255,0.75)" }]}>Lyon</UiText>
+            <UiText style={[s.infoTemp, { color: C.white }]}>14°</UiText>
+            <UiText style={[s.infoSub, { color: "rgba(255,255,255,0.85)" }]}>Ensoleillé</UiText>
           </View>
-          <View style={s.col}>
-          <ActionCard title="Jeux" subtitle="Memory, puzzle, quiz" icon="game-controller-outline" color="#a7aac9" onPress={() => router.push("/(tabs)/games")} />
+          <View style={[s.infoCard, { backgroundColor: C.yellow, flex: 1.5 }]}>
+            <UiText style={[s.infoLabel, { color: "rgba(0,0,0,0.55)" }]}>Actualités</UiText>
+            <UiText style={s.newsText}>
+              La fête des voisins revient le 30 mai dans toute la France.
+            </UiText>
+            <UiText style={[s.newsArrow, { color: C.black }]}>{"→ Lire"}</UiText>
           </View>
         </View>
 
-        <View style={s.gridRow}>
-          <View style={s.col}>
-          <ActionCard title="Agenda" subtitle="Rappels & visites" icon="calendar-outline" color="#a7aac9" onPress={() => router.push("/(tabs)/agenda")} />
-          </View>
-          <View style={s.col}>
-          <ActionCard title="Urgence" subtitle="Télé-assistance" icon="alert-circle-outline" color="#eaeaf7" onPress={() => router.push("/(tabs)/emergency")} />
-          </View>
+        {/* AGENDA | CONTACTS */}
+        <View style={[s.row, { marginBottom: 10 }]}>
+          <TouchableOpacity
+            style={[s.card, { backgroundColor: C.blue }]}
+            onPress={() => router.push("/(tabs)/agenda")}
+            activeOpacity={0.82}
+          >
+            <UiText style={[s.cardTitle, { color: C.white }]}>Agenda</UiText>
+            <UiText style={[s.cardSub, { color: "rgba(255,255,255,0.75)" }]}>Kiné à 14h aujourd'hui</UiText>
+            <UiText style={[s.cardArrow, { color: C.white }]}>{"→"}</UiText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.card, { backgroundColor: C.yellow }]}
+            onPress={() => router.push("/(tabs)/comm")}
+            activeOpacity={0.82}
+          >
+            <UiText style={[s.cardTitle, { color: C.black }]}>Contacts</UiText>
+            <UiText style={[s.cardSub, { color: "rgba(0,0,0,0.6)" }]}>Famille & soignants</UiText>
+            <UiText style={[s.cardArrow, { color: C.black }]}>{"→"}</UiText>
+          </TouchableOpacity>
         </View>
-      </View>
+
+        {/* JEUX | URGENCE */}
+        <View style={[s.row, { marginBottom: 16 }]}>
+          <TouchableOpacity
+            style={[s.card, { backgroundColor: C.black }]}
+            onPress={() => router.push("/(tabs)/games")}
+            activeOpacity={0.82}
+          >
+            <UiText style={[s.cardTitle, { color: C.white }]}>Jeux</UiText>
+            <UiText style={[s.cardSub, { color: "rgba(255,255,255,0.6)" }]}>Memory, puzzle, quiz</UiText>
+            <UiText style={[s.cardArrow, { color: C.yellow }]}>{"→"}</UiText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.card, { backgroundColor: C.pink }]}
+            onPress={() => router.push("/(tabs)/emergency")}
+            activeOpacity={0.82}
+          >
+            <UiText style={[s.cardTitle, { color: C.black }]}>Urgence</UiText>
+            <UiText style={[s.cardSub, { color: "rgba(0,0,0,0.6)" }]}>Télé-assistance</UiText>
+            <UiText style={[s.cardArrow, { color: C.black }]}>{"→"}</UiText>
+          </TouchableOpacity>
+        </View>
+
+        {/* CETTE SEMAINE */}
+        <UiText style={s.weekTitle}>Cette semaine</UiText>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.weekScroll}
+        >
+          {DAYS.map((day, i) => {
+            const active = i === TODAY_INDEX;
+            return (
+              <TouchableOpacity
+                key={day.label}
+                style={[s.dayChip, active && s.dayChipActive]}
+                onPress={() => {}}
+              >
+                <UiText style={[s.dayLabel, active && s.dayLabelActive]}>{day.label}</UiText>
+                <UiText style={[s.daySub, active && s.daySubActive]}>{day.subtitle}</UiText>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+      </ScrollView>
     </Screen>
   );
 }
+
+const s = StyleSheet.create({
+  row: { flexDirection: "row", gap: 10 },
+
+  avatarContainer: {
+    backgroundColor: "#000",
+    borderRadius: 20,
+    overflow: "hidden",
+    marginBottom: 10,
+  },
+
+  infoCard: { borderRadius: 16, padding: 14 },
+  infoLabel: { fontSize: 12, fontWeight: "700" },
+  infoTemp: { fontSize: 34, fontWeight: "900", lineHeight: 40 },
+  infoSub: { fontSize: 13, marginTop: 2 },
+  newsText: { fontSize: 12, color: "#111", lineHeight: 18, marginTop: 4 },
+  newsArrow: { fontSize: 12, fontWeight: "700", marginTop: 6 },
+
+  card: {
+    flex: 1,
+    borderRadius: 20,
+    padding: 18,
+    minHeight: 100,
+    justifyContent: "space-between",
+  },
+  cardTitle: { fontSize: 18, fontWeight: "900" },
+  cardSub: { fontSize: 13, marginTop: 4 },
+  cardArrow: { fontSize: 22, fontWeight: "900", alignSelf: "flex-end" },
+
+  weekTitle: { fontSize: 17, fontWeight: "900", color: "#111", marginBottom: 10 },
+  weekScroll: { flexDirection: "row", gap: 8, paddingBottom: 8 },
+  dayChip: {
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: "#fff",
+    minWidth: 68,
+  },
+  dayChipActive: { backgroundColor: "#111" },
+  dayLabel: { fontSize: 14, fontWeight: "800", color: "#111" },
+  dayLabelActive: { color: "#ffce36" },
+  daySub: { fontSize: 11, color: "#888", marginTop: 2 },
+  daySubActive: { color: "rgba(255,255,255,0.7)" },
+});
