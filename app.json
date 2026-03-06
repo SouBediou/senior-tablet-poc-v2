@@ -45,18 +45,18 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router",
-      "expo-font",
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "minSdkVersion": 24,
-            "newArchEnabled": false
-          }
-        }
-      ]
-    ],
+  "expo-router",
+  "expo-font",
+  [
+    "expo-build-properties",
+    {
+      "android": {
+        "minSdkVersion": 24,
+        "newArchEnabled": false
+      }
+    }
+  ]
+],
     "extra": {
       "router": {},
       "eas": {
