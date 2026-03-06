@@ -1,114 +1,95 @@
-import React, { useState, useMemo } from "react";
-import { View, StyleSheet, Pressable, Vibration } from "react-native";
-import { Screen } from "@/src/components/Screen";
-import { UiText } from "@/src/components/UiText";
-import { useTheme } from "@/src/ui/useTheme";
+import React, { useState } from "react";
+import { View, Pressable, Vibration } from "react-native";
 import { router } from "expo-router";
-import { ScreenHeader } from '@/src/components/ScreenHeader';
+import { UiText } from "@/src/components/UiText";
 
-function BigEmergencyButton({ onPress }: { onPress: () => void }) {
-  const t = useTheme();
-
-  const s = useMemo(
-    () =>
-      StyleSheet.create({
-        halo: {
-          borderRadius: 999,
-          padding: 18,
-          backgroundColor: "rgba(229,72,77,0.12)",
-          borderWidth: 1,
-          borderColor: "rgba(229,72,77,0.25)",
-        },
-        outer: {
-          borderRadius: 999,
-          padding: 10,
-          backgroundColor: "rgba(229,72,77,0.18)",
-        },
-        button: {
-          borderRadius: 999,
-          paddingVertical: 26,
-          backgroundColor: t.colors.danger,
-          alignItems: "center",
-        },
-      }),
-    [t]
-  );
-
-  return (
-    <Pressable
-      onPress={() => {
-        Vibration.vibrate(40);
-        onPress();
-      }}
-      style={({ pressed }) => [{ transform: [{ scale: pressed ? 0.97 : 1 }] }]}
-    >
-      <View style={s.halo}>
-        <View style={s.outer}>
-          <View style={s.button}>
-            <UiText variant="h1" style={{ color: "#fff", fontWeight: "900" }}>
-              🚨 URGENCE
-            </UiText>
-            <UiText variant="small" style={{ color: "rgba(255,255,255,0.9)", marginTop: 6 }}>
-              Appeler l’assistance
-            </UiText>
-          </View>
-        </View>
-      </View>
-    </Pressable>
-  );
-}
+const C = { blue: "#3481f8", yellow: "#ffce36", black: "#111111", white: "#ffffff", red: "#E5484D", pink: "#f05c7e" };
 
 export default function EmergencyScreen() {
-  const t = useTheme();
   const [status, setStatus] = useState<"idle" | "calling" | "done">("idle");
 
-  const s = StyleSheet.create({
-    header: { gap: 6, marginBottom: t.spacing.lg },
-    card: {
-      backgroundColor: t.colors.surface,
-      borderRadius: t.radius.xl,
-      padding: t.spacing.lg,
-      borderWidth: 1,
-      borderColor: t.colors.border,
-      ...t.shadow.card,
-    },
-  });
-
-  const startCall = () => {
-    setStatus("calling");
-    setTimeout(() => setStatus("done"), 1500);
-  };
-
   return (
-    <Screen>
-      <ScreenHeader title="Urgence" subtitle="En cas de malaise ou de chute, appuyez sur le bouton" />
-
-      <View style={{ gap: t.spacing.lg }}>
-        <BigEmergencyButton onPress={() => router.push("/emergency-confirm")} />
-
-        <View style={s.card}>
-          <UiText variant="title" style={{ fontWeight: "900" }}>
-            {status === "idle" && "Prêt"}
-            {status === "calling" && "📞 Appel en cours…"}
-            {status === "done" && "✅ Assistance contactée"}
-          </UiText>
-
-          <UiText muted style={{ marginTop: 8 }}>
-            {status === "idle" && "Vous pouvez prévenir l’assistance à tout moment."}
-            {status === "calling" && "Restez calme, nous nous occupons de tout."}
-            {status === "done" && "Restez près de la tablette."}
-          </UiText>
-
-          {status !== "idle" && (
-            <Pressable
-              onPress={() => setStatus("idle")}
-              style={{ marginTop: 16 }}
-            >
-              <UiText muted>Réinitialiser (POC)</UiText>
-            </Pressable>
-          )}
-        </View>
+    <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
+      {/* Header rose */}
+      <View style={{ backgroundColor: C.pink, paddingTop: 20, paddingBottom: 24, paddingHorizontal: 20 }}>
+        <UiText style={{ fontSize: 32, fontWeight: "900", color: C.black }}>Urgence</UiText>
+        <UiText style={{ fontSize: 17, color: "rgba(0,0,0,0.55)", marginTop: 4 }}>
+          En cas de malaise ou de chute
+        </UiText>
       </View>
-    </Screen>
+
+      <View style={{ flex: 1, padding: 20, gap: 20, justifyContent: "space-between" }}>
+
+        {/* Grand bouton urgence */}
+        <Pressable
+          onPress={() => { Vibration.vibrate(40); router.push("/emergency-confirm"); }}
+          style={({ pressed }) => [{
+            backgroundColor: C.red,
+            borderRadius: 28,
+            padding: 40,
+            alignItems: "center",
+            gap: 12,
+            transform: [{ scale: pressed ? 0.97 : 1 }],
+            shadowColor: C.red,
+            shadowOpacity: 0.4,
+            shadowRadius: 20,
+            elevation: 8,
+          }]}
+        >
+          <UiText style={{ fontSize: 64 }}>🚨</UiText>
+          <UiText style={{ fontSize: 36, fontWeight: "900", color: C.white }}>URGENCE</UiText>
+          <UiText style={{ fontSize: 18, color: "rgba(255,255,255,0.85)" }}>
+            Appuyer pour appeler l'assistance
+          </UiText>
+        </Pressable>
+
+        {/* Numéros utiles */}
+        <View style={{ gap: 12 }}>
+          <UiText style={{ fontSize: 20, fontWeight: "900", color: C.black, marginBottom: 4 }}>
+            Numéros d'urgence
+          </UiText>
+          {[
+            { num: "15", label: "SAMU — Urgences médicales", color: C.red },
+            { num: "18", label: "Pompiers — Accident / incendie", color: C.blue },
+            { num: "15", label: "Télé-assistance personnelle", color: C.black },
+          ].map((item, i) => (
+            <View key={i} style={{
+              backgroundColor: "#fff",
+              borderRadius: 20,
+              padding: 20,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 16,
+              shadowColor: "#000",
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+              elevation: 2,
+            }}>
+              <View style={{
+                width: 60, height: 60, borderRadius: 16,
+                backgroundColor: item.color,
+                alignItems: "center", justifyContent: "center",
+              }}>
+                <UiText style={{ fontSize: 24, fontWeight: "900", color: "#fff" }}>{item.num}</UiText>
+              </View>
+              <UiText style={{ fontSize: 18, fontWeight: "700", color: C.black, flex: 1 }}>{item.label}</UiText>
+            </View>
+          ))}
+        </View>
+
+        {/* Statut */}
+        {status !== "idle" && (
+          <View style={{ backgroundColor: status === "done" ? "#2BAA6B" : C.blue, borderRadius: 20, padding: 20, alignItems: "center" }}>
+            <UiText style={{ fontSize: 22, fontWeight: "900", color: "#fff" }}>
+              {status === "calling" ? "📞 Appel en cours…" : "✅ Assistance contactée"}
+            </UiText>
+            <Pressable onPress={() => setStatus("idle")} style={{ marginTop: 12 }}>
+              <UiText style={{ fontSize: 15, color: "rgba(255,255,255,0.7)" }}>Réinitialiser</UiText>
+            </Pressable>
+          </View>
+        )}
+
+      </View>
+    </View>
   );
 }
