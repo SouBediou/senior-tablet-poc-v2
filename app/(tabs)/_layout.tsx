@@ -20,19 +20,19 @@ export default function TabsLayout() {
 
         // ✅ Barre violette, sans icônes, texte blanc
         tabBarStyle: {
-          backgroundColor: t.colors.ink, // violet #411C68
+          backgroundColor: "#3481f8",
           borderTopWidth: 0,
           paddingTop: 12,
-          paddingBottom: bottomPad, // ✅ la clé : remonte la barre
-          height: 62 + bottomPad,    // ✅ hauteur totale cohérente
+          paddingBottom: bottomPad,
+          height: 62 + bottomPad,
         },
 
         tabBarLabelStyle: {
           fontSize: 18,
           fontWeight: "900",
         },
-        tabBarActiveTintColor: "#411C68",
-        tabBarInactiveTintColor: "rgba(65,28,104,0.6)",
+        tabBarActiveTintColor: "#ffce36",
+        tabBarInactiveTintColor: "rgba(255,255,255,0.65)",
 
         // ✅ pas d’icônes
         tabBarIconStyle: { display: "none" },
